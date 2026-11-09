@@ -7,6 +7,9 @@ Every release gets an entry here in Polish and English. Newest first.
 
 **Polski**
 
+Nowe
+- **Odinstalowanie aplikacji z launchera.** Przytrzymaj OK na kafelku w docku albo na liście aplikacji i wybierz „Odinstaluj aplikację” — telewizor pokazuje wtedy swoje okno odinstalowywania, więc nie trzeba wchodzić w Ustawienia telewizora. Aplikacje systemowe launcher opisuje komunikatem zamiast próbować je usuwać, a po odinstalowaniu kafelek i pozycja na liście znikają same. Krótkie naciśnięcie OK nadal otwiera aplikację — także na liście, gdzie do tej pory wystarczyło samo naciśnięcie.
+
 Ulepszone
 - **Lżejsza pamięć.** Zdjęcie tapety jest skalowane dokładnie do rozmiaru ekranu (wcześniej do 2560×1440), okładka Spotify do wielkości paska, a miniatury w galerii tapet są mniejsze. Własne ikony docku mają najwyżej 384 px — starsze, 512-pikselowe, są zmniejszane przy wczytaniu. Ikony, herby i pogoda mają cache z limitem pamięci, a przy braku pamięci system zwalnia je od razu (`onTrimMemory`).
 - **Płynniejsze otwieranie listy aplikacji.** Poświata fokusu jest rysowana raz na rozmiar i kolor, bez warstwy software na każdym kafelku; lista otwiera się w ok. 70 ms zamiast ok. 350 ms, a poświata nie jest już przycinana na brzegach.
@@ -16,6 +19,9 @@ Do wiadomości
 - Repozytorium forka zmieniło nazwę na `linartv-launcher-seyforked` (wcześniej `linartv-launcher-open`). Aplikacja sprawdza aktualizacje w wydaniach tego forka, a nie upstreamu, więc aktualizacja nie podmieni forka na wersję oryginalną.
 
 **English**
+
+New
+- **Uninstall an app from the launcher.** Hold OK on a dock tile or on a tile in the app list and choose "Uninstall app" — the TV then shows its own uninstall window, so the TV settings never have to be opened. System apps are explained instead of touched, and once an app is gone its tile and its place in the list disappear on their own. A short OK still opens the app, including in the list, where a single press used to be enough.
 
 Improved
 - **Lighter memory use.** A wallpaper photo is scaled exactly to the screen (previously up to 2560×1440), the Spotify cover to the bar size, and gallery thumbnails are smaller. Custom dock icons are kept at most 384 px — older 512-pixel ones shrink when loaded. Icons, crests and weather art use byte-limited caches, and the system can drop them immediately under memory pressure (`onTrimMemory`).

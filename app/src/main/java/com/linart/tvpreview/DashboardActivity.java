@@ -176,6 +176,12 @@ public final class DashboardActivity extends Activity {
     private ScrollView appDrawer;
     private LinearLayout drawerRows;
     private boolean drawerRowsLoaded;
+    /** Tile that received OK in the list; a long hold on it opens the app menu instead. */
+    private View drawerPressTile;
+    private boolean drawerPressFired;
+    private Runnable drawerLongPress;
+    /** Package handed to Android's uninstall window; checked again when the dashboard resumes. */
+    private String pendingUninstall;
     private static final int APP_ROW_HEIGHT = 142;
     /** Room kept around the app rows so the focus aura is never cut by the scrolling viewport. */
     private static final int AURA_ROOM = 34;
@@ -400,6 +406,13 @@ public final class DashboardActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        // Some TVs close the uninstall window without reporting a result; the package list is the
+        // truth, so the launcher rebuilds whenever the app is really gone.
+        if (pendingUninstall != null) {
+            String pkg = pendingUninstall;
+            pendingUninstall = null;
+            if (!isInstalled(pkg)) forgetUninstalledApp(pkg);
+        }
         if (spotify == null) spotify = new SpotifyNowPlaying(this, (title, artist, cover, playing) -> {
             spotifyTrack = title; spotifyPerformer = artist;
             spotifyArtwork = scaledCover(cover); spotifyPlaying = playing;
@@ -1827,6 +1840,7 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
     }
 
     private static final int REQUEST_VOICE = 41;
+    private static final int REQUEST_UNINSTALL = 42;
     /** Receives what the user said (best guess first); set while the voice window is open. */
     private java.util.function.Consumer<List<String>> voiceResult;
 
@@ -1954,6 +1968,14 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
             customIconDockIndex = -1;
             if (resultCode == RESULT_OK && data != null && data.getData() != null && pkg != null)
                 importCustomIcon(index, pkg, data.getData(), data.getType());
+            return;
+        }
+        if (requestCode == REQUEST_UNINSTALL) {
+            String pkg = pendingUninstall;
+            pendingUninstall = null;
+            // RESULT_FIRST_USER means the system refused; the package check covers installers
+            // that report nothing useful.
+            if (pkg != null && (resultCode == RESULT_OK || !isInstalled(pkg))) forgetUninstalledApp(pkg);
             return;
         }
         if (requestCode != REQUEST_VOICE) return;
@@ -3889,24 +3911,93 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
 
     private void showDockMenu(int index) {
         if (index < 0 || index >= dockPackages.size()) return;
+        final String pkg = dockPackages.get(index);
         List<String> labels = new ArrayList<>(java.util.Arrays.asList(
                 tr("Zamień aplikację", "Replace app"), tr("Przesuń", "Move"),
                 tr("Własna ikona", "Custom icon"), tr("Edytuj cały dock", "Edit the whole dock")));
         // The last app cannot be removed, so the entry only exists when there is something to keep.
         final boolean canRemove = dockPackages.size() > 1;
         if (canRemove) labels.add(tr("Usuń z docku", "Remove from dock"));
-        showChoiceDialog(appLabel(dockPackages.get(index)), labels.toArray(new String[0]), choice -> {
+        // A TV remote has no long tap on the screen, so holding OK is where an app gets removed.
+        labels.add(tr("Odinstaluj aplikację", "Uninstall app"));
+        final int removeChoice = canRemove ? 4 : -1;
+        final int uninstallChoice = labels.size() - 1;
+        showChoiceDialog(appLabel(pkg), labels.toArray(new String[0]), choice -> {
             if (choice == 0) showDockReplace(index);
             else if (choice == 1) startDockMove(index);
             else if (choice == 2) showDockIconSettings(index);
             else if (choice == 3) showDockEditor(false);
-            else if (canRemove) {
+            else if (choice == removeChoice) {
                 List<String> next = new ArrayList<>(dockPackages);
                 next.remove(index);
                 saveDock(next);
                 refreshDock(index);
-            }
+            } else if (choice == uninstallChoice) uninstallApp(pkg);
         });
+    }
+
+    // ---------- Uninstall an app without leaving the launcher ----------
+
+    /** Menu for a tile of the app list; a short tap there still opens the app. */
+    private void showDrawerTileMenu(View tile) {
+        String pkg = tile == null || !(tile.getTag() instanceof String) ? null : (String) tile.getTag();
+        if (pkg == null) return;
+        showChoiceDialog(appLabel(pkg), new String[]{tr("Odinstaluj aplikację", "Uninstall app")},
+                choice -> uninstallApp(pkg));
+    }
+
+    /**
+     * Hands the app to Android's own uninstall window, which asks once more and keeps the person
+     * in control — only a system app can delete another app without that window, and a launcher is
+     * not one. The dashboard redraws itself when the package is really gone.
+     */
+    private void uninstallApp(String pkg) {
+        if (pkg == null || pkg.equals(getPackageName())) return;
+        android.content.pm.ApplicationInfo info;
+        try { info = getPackageManager().getApplicationInfo(pkg, 0); }
+        catch (PackageManager.NameNotFoundException gone) { return; }
+        boolean system = (info.flags & android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0;
+        // An updated system app can at least lose its updates; the window offers exactly that.
+        boolean updated = (info.flags & android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0;
+        if (system && !updated) {
+            showMessageDialog(tr("Nie można odinstalować", "Cannot uninstall"),
+                    tr("Ta aplikacja jest częścią systemu telewizora i nie można jej usunąć.",
+                            "This app came with the TV and cannot be removed."));
+            return;
+        }
+        pendingUninstall = pkg;
+        Intent uninstall = new Intent(Intent.ACTION_UNINSTALL_PACKAGE, Uri.parse("package:" + pkg));
+        uninstall.putExtra(Intent.EXTRA_RETURN_RESULT, true);
+        try { startActivityForResult(uninstall, REQUEST_UNINSTALL); return; }
+        catch (android.content.ActivityNotFoundException noWindow) { }
+        // Some TV builds only answer the plain delete intent, which reports no result.
+        try { startActivity(new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + pkg))); }
+        catch (android.content.ActivityNotFoundException none) {
+            pendingUninstall = null;
+            showMessageDialog(tr("Nie można odinstalować", "Cannot uninstall"),
+                    tr("Telewizor nie otworzył okna odinstalowywania.",
+                            "This TV did not open an uninstall window."));
+        }
+    }
+
+    private boolean isInstalled(String pkg) {
+        try { getPackageManager().getApplicationInfo(pkg, 0); return true; }
+        catch (PackageManager.NameNotFoundException gone) { return false; }
+    }
+
+    /** Drops the app from the dock and the list, then redraws the dashboard around the gap. */
+    private void forgetUninstalledApp(String pkg) {
+        customIconCache.remove(pkg);
+        // The saved slot is dropped as well, otherwise the dock would refill it with another app.
+        if (dockPackages.remove(pkg)) saveDock(dockPackages);
+        drawerRowsLoaded = false;
+        // buildScreen() keeps the app list open at the same row and column when it was open, and
+        // waits for the next popup to close when a settings window happens to be in front.
+        buildScreen();
+        handler.postDelayed(() -> {
+            if (popupOpen || appDrawerOpen || dockCards.isEmpty()) return;
+            dockCards.get(0).requestFocus();
+        }, 120);
     }
 
     private void showDockReplace(int index) {
@@ -4679,6 +4770,8 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
             tile.setBackground(shape(rowFill, Color.TRANSPARENT, 32));
             tile.setClipToOutline(true);
             tile.setContentDescription(brand);
+            // Holding OK in the list asks for this package's menu; a tag survives the row rebuild.
+            tile.setTag(pkg);
             tile.setFocusable(true);
             tile.setFocusableInTouchMode(true);
             tile.setClickable(true);
@@ -4792,6 +4885,7 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
             tile.setClickable(true);
             tile.setClipToOutline(true);
             tile.setContentDescription(info.loadLabel(getPackageManager()));
+            tile.setTag(pkg);
             final int rowFill = night ? 0xFF263451 : 0xFFE3EAF2;
             tile.setBackground(shape(rowFill, Color.TRANSPARENT, 32));
             ImageView icon = new ImageView(this);
@@ -4952,6 +5046,11 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
     private void closeAppDrawer(int dockIndex) {
         if (!appDrawerOpen) return;
         appDrawerOpen = false;
+        // A hold in progress must not open a menu over the list that is being closed.
+        if (drawerLongPress != null) handler.removeCallbacks(drawerLongPress);
+        drawerLongPress = null;
+        drawerPressTile = null;
+        drawerPressFired = false;
         // Pick the tile to return to before the dock becomes focusable again: enabling the
         // background can move focus around and would make the choice depend on timing.
         View restore;
@@ -5034,8 +5133,11 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
                     int row = Math.min(drawerFocusRow, extraAppRows.size() - 1);
                     int column = Math.min(drawerFocusColumn, extraAppRows.get(row).size() - 1);
                     View focused = extraAppRows.get(row).get(column);
-                    if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
-                        focused.performClick();
+                    boolean confirm = key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER;
+                    if (confirm) {
+                        // A held key repeats; only the first press starts the timer, or a repeat
+                        // every few milliseconds would keep pushing the menu away.
+                        if (event.getRepeatCount() == 0) startDrawerPress(focused);
                         return true;
                     }
                     if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
@@ -5070,7 +5172,43 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
                 if (dockExpand != null && dockExpand.hasFocus()) { openAppDrawer(); return true; }
             }
         }
+        if (appDrawerOpen && event.getAction() == KeyEvent.ACTION_UP) {
+            int key = event.getKeyCode();
+            if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
+                finishDrawerPress();
+                return true;
+            }
+        }
         return super.dispatchKeyEvent(event);
+    }
+
+    /**
+     * OK in the list opens the app when released and its menu when held. The list consumes the key
+     * itself (so arrows can jump between rows), which is why the framework's own long-press timer
+     * never sees it and this one is timed here.
+     */
+    private void startDrawerPress(View tile) {
+        drawerPressTile = tile;
+        drawerPressFired = false;
+        handler.removeCallbacks(drawerLongPress);
+        drawerLongPress = () -> {
+            View held = drawerPressTile;
+            // Cleared first: a key-up that still arrives afterwards must not also open the app.
+            drawerPressTile = null;
+            drawerPressFired = true;
+            if (appDrawerOpen && held != null) showDrawerTileMenu(held);
+        };
+        handler.postDelayed(drawerLongPress, android.view.ViewConfiguration.getLongPressTimeout());
+    }
+
+    private void finishDrawerPress() {
+        handler.removeCallbacks(drawerLongPress);
+        drawerLongPress = null;
+        View pressed = drawerPressTile;
+        boolean openedMenu = drawerPressFired;
+        drawerPressTile = null;
+        drawerPressFired = false;
+        if (!openedMenu && pressed != null) pressed.performClick();
     }
 
     @Override public boolean dispatchTouchEvent(MotionEvent event) {

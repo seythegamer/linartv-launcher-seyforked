@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <!-- "Update" opens Android's own install window for a newer LinarTV from GitHub Releases. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Holding OK on an app tile hands it to Android's uninstall window (asked for since
+         Android 10; granted automatically, the window still confirms every removal). -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <!-- Voice search in the club/city search: asked only when the microphone button is pressed. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- The built-in image picker lists the Download folder (targetSdk 28 storage model);

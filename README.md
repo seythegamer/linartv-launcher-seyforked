@@ -102,6 +102,19 @@ Everything sits on top of upstream `main` (`2a17480`). The app still reports `ve
   certificate was replaced by a "release build only" check, so the fork can publish its own signed releases
   — see [docs/RELEASING.md](docs/RELEASING.md).
 
+### 5. Uninstall an app from the launcher
+
+- **Hold OK** on a dock tile — or on any tile in the app list — and choose **Uninstall app**. Android's own
+  uninstall window opens and asks once more, so the TV settings are never needed.
+- Nothing is deleted behind your back: a launcher cannot remove a package silently, and the app list only
+  offers the action. **System apps** (a factory-installed YouTube, for example) cannot be removed at all
+  without a system privilege — the launcher explains that instead of offering an action that would fail.
+- Once the app is gone, its dock tile and its place in the list disappear on their own and the dock closes
+  the gap. A short OK still opens an app; the list now opens it on key release and the menu on a held key,
+  because the list handles OK itself so the arrow keys keep working.
+- `REQUEST_DELETE_PACKAGES` was added to the manifest — a normal, auto-granted permission that
+  `ACTION_UNINSTALL_PACKAGE` needs since Android 10.
+
 ## Build from source
 
 JDK 17 and the Android SDK are required (`JAVA_HOME`, `ANDROID_HOME`).

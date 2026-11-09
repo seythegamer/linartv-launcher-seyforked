@@ -267,5 +267,9 @@
   "night": "notte",
   "The wallpaper will change once the forecast arrives.": "Lo sfondo cambierà quando arriverà il meteo.",
   "enabled": "attivato",
-  "disabled": "disattivato"
+  "disabled": "disattivato",
+  "Uninstall app": "Disinstalla app",
+  "Cannot uninstall": "Impossibile disinstallare",
+  "This app came with the TV and cannot be removed.": "Questa app fa parte del televisore e non può essere rimossa.",
+  "This TV did not open an uninstall window.": "Il televisore non ha aperto una finestra di disinstallazione."
 }
