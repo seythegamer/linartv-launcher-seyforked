@@ -122,9 +122,15 @@ public final class DashboardActivity extends Activity {
     private static final java.util.Set<String> HIDDEN_APP_PACKAGES = new HashSet<>(java.util.Arrays.asList(
             "org.droidtv.playtv", "org.droidtv.eum", "org.droidtv.channels", "org.droidtv.contentexplorer",
             "com.android.traceur", "com.android.tv.settings"));
-    private static final String[] CLEANUP_PACKAGES = {"com.google.android.youtube.tv", "com.netflix.ninja",
-            "com.canal.android.canal", "com.spotify.tv.android", "com.tvp.vodtv.tv",
-            "com.google.android.youtube.tvkids", "pl.cda.tv"};
+    /** Where a root shell usually lives; the first executable one is used. */
+    private static final String[] SU_PATHS = {"/system/xbin/su", "/system/bin/su", "/sbin/su",
+            "/su/bin/su", "/debug_ramdisk/su"};
+    /** Set while the "Close apps" thread works; another press waits instead of starting a second run. */
+    private boolean cleanupRunning;
+    /** Root shell answer for this run: null until asked, then kept so `su` is not asked twice. */
+    private Boolean rootShell;
+    /** Absolute path of the working `su`, used instead of trusting the app's PATH. */
+    private String rootShellPath;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private float scale;
     private FrameLayout root;
@@ -5384,24 +5390,131 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
     }
 
     private void closeBackgroundApps() {
-        ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-        if (manager == null) return;
+        if (cleanupRunning) return;
+        cleanupRunning = true;
+        Toast.makeText(this, tr("Zamykanie aplikacji w tle…", "Closing background apps…"),
+                Toast.LENGTH_SHORT).show();
         new Thread(() -> {
-            for (String pkg : CLEANUP_PACKAGES) {
-                // Cast discovery and reception must remain available independently of the launcher.
-                if ("com.google.android.apps.mediashell".equals(pkg)
-                        || "com.google.android.gms".equals(pkg) || getPackageName().equals(pkg)) continue;
-                try { manager.killBackgroundProcesses(pkg); }
-                catch (SecurityException ignored) { }
+            try {
+                cleanBackgroundApps();
+            } catch (Exception e) {
+                // A failed scan must never take the launcher down with it.
+                handler.post(() -> {
+                    cleanupRunning = false;
+                    if (isFinishing() || isDestroyed()) return;
+                    Toast.makeText(this, tr("Nie udało się zamknąć aplikacji",
+                            "Could not close apps"), Toast.LENGTH_SHORT).show();
+                });
             }
-            handler.post(() -> {
-                if (publicSettingsDialog != null && publicSettingsDialog.isShowing())
-                    renderPublicSettings(publicSettingsDialog, false);
-                Toast.makeText(this,
-                    tr("Poproszono system o zamknięcie aplikacji w tle",
-                            "Asked the system to close background apps"), Toast.LENGTH_SHORT).show();
-            });
         }, "background-cleanup").start();
+    }
+
+    /** Stops every launchable app the TV does not need, then reports the memory that came back. */
+    private void cleanBackgroundApps() {
+        PackageManager packages = getPackageManager();
+        java.util.LinkedHashSet<String> launchable = new java.util.LinkedHashSet<>();
+        for (ResolveInfo info : packages.queryIntentActivities(new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0))
+            launchable.add(info.activityInfo.packageName);
+        for (ResolveInfo info : packages.queryIntentActivities(new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER), 0))
+            launchable.add(info.activityInfo.packageName);
+        List<String> targets = AppCleanup.candidates(launchable, getPackageName(), cleanupKeep());
+
+        ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        ActivityManager.MemoryInfo memory = new ActivityManager.MemoryInfo();
+        long before = 0;
+        if (manager != null) {
+            manager.getMemoryInfo(memory);
+            before = memory.availMem;
+        }
+        // A root shell force-stops for real, including the services an app keeps alive; without
+        // root only the public API is left, and it closes the app's background processes.
+        boolean stopped = manager != null && !targets.isEmpty() && rootShellAvailable()
+                && runRootCommand(rootShellPath, AppCleanup.forceStopScript(targets), 20000) != null;
+        if (!stopped && manager != null) for (String pkg : targets) {
+            try { manager.killBackgroundProcesses(pkg); }
+            catch (Exception ignored) { }
+        }
+        // The system needs a moment before the released pages show up as free memory.
+        try { Thread.sleep(700); } catch (InterruptedException ignored) { }
+        long freed = 0;
+        if (manager != null) {
+            manager.getMemoryInfo(memory);
+            freed = Math.max(0, memory.availMem - before);
+        }
+        final int closed = targets.size();
+        final long released = freed;
+        handler.post(() -> {
+            cleanupRunning = false;
+            if (isFinishing() || isDestroyed()) return;
+            String summary = closed == 0
+                    ? tr("Brak aplikacji w tle", "No background apps")
+                    : tr("Aplikacje w tle: ", "Background apps: ") + closed
+                    + (released > 0
+                    ? tr(" · zwolniono ", " · freed ")
+                    + android.text.format.Formatter.formatShortFileSize(this, released)
+                    : tr(" · pamięć była już czysta", " · memory was already clean"));
+            Toast.makeText(this, summary, Toast.LENGTH_LONG).show();
+            refreshRamMeter();
+            if (publicSettingsDialog != null && publicSettingsDialog.isShowing())
+                renderPublicSettings(publicSettingsDialog, false);
+        });
+    }
+
+    /** An always-on VPN keeps the TV online; closing it would cut every other app off. */
+    private List<String> cleanupKeep() {
+        List<String> keep = new ArrayList<>();
+        try {
+            String vpn = Settings.Secure.getString(getContentResolver(), "always_on_vpn_app");
+            if (vpn != null && !vpn.isEmpty()) keep.add(vpn);
+        } catch (Exception ignored) { }
+        return keep;
+    }
+
+    /** True when this box has a root shell the launcher may use. Asked once per run. */
+    private boolean rootShellAvailable() {
+        if (rootShell != null) return rootShell;
+        rootShell = false;
+        for (String path : SU_PATHS) {
+            File su = new File(path);
+            if (!su.isFile() || !su.canExecute()) continue;
+            String id = runRootCommand(path, "id", 3000);
+            rootShell = id != null && id.contains("uid=0");
+            if (rootShell) rootShellPath = path;
+            break;
+        }
+        return rootShell;
+    }
+
+    /**
+     * Runs a command in a root shell; null means it failed or did not finish in time.
+     * The output is drained on another thread so a chatty shell cannot block the pipe.
+     */
+    private static String runRootCommand(String su, String command, long timeoutMs) {
+        Process process = null;
+        try {
+            process = new ProcessBuilder(su, "-c", command).redirectErrorStream(true).start();
+            final Process child = process;
+            final java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+            Thread drain = new Thread(() -> {
+                byte[] buffer = new byte[512];
+                try (InputStream input = child.getInputStream()) {
+                    int read;
+                    while ((read = input.read(buffer)) != -1) output.write(buffer, 0, read);
+                } catch (IOException ignored) { }
+            }, "background-cleanup-output");
+            drain.setDaemon(true);
+            drain.start();
+            if (!process.waitFor(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)) return null;
+            drain.join(300);
+            return process.exitValue() == 0
+                    ? new String(output.toByteArray(), java.nio.charset.StandardCharsets.UTF_8) : null;
+        } catch (Exception e) {
+            return null;
+        } finally {
+            if (process != null) process.destroy();
+        }
     }
 
     private void openSettings(String action) {

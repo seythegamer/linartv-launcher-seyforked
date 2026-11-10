@@ -115,6 +115,26 @@ Everything sits on top of upstream `main` (`2a17480`). The app still reports `ve
 - `REQUEST_DELETE_PACKAGES` was added to the manifest — a normal, auto-granted permission that
   `ACTION_UNINSTALL_PACKAGE` needs since Android 10.
 
+### 6. Close apps really closes apps
+
+- The **Close apps** tile used to send `killBackgroundProcesses` to seven packages typed into the code.
+  It now scans every app that has an entry in the dock or in the app list and stops all of them, keeping
+  only what the TV needs: the launcher itself, System UI, Settings, Play Store, Google services, the cast
+  receiver (`mediashell`), the vendor television stack (`org.droidtv.*`, so the picture, inputs and tuner
+  stay alive) and an always-on VPN, because closing it would cut every other app off the network.
+- **With root** (a Magisk/Superuser box or an AOSP device with `su`) it builds one script of
+  `am force-stop <package>` lines and runs it in a single root shell. That is a real force stop, so
+  services an app keeps alive go down with it. The first press may ask for root once; the answer is kept
+  for the rest of the run. If root is refused or does not answer in time, the launcher silently falls back.
+- **Without root** Android offers no public force stop, so the launcher calls `killBackgroundProcesses`
+  for every app — the same API as before, now applied to the whole list instead of seven names.
+- The toast says how many background apps were targeted and how much RAM came back (measured with
+  `ActivityManager.MemoryInfo` before and after), and the RAM widget plus the settings overview refresh
+  immediately. A second press while it works is ignored instead of spawning another root shell.
+- The safety list and the script builder live in plain Java (`AppCleanup.java`), so
+  `tests/AppCleanupCheck.java` can check them on a desktop JVM — including command-injection attempts such
+  as `a; reboot` or `$(id)`. `scripts/test-local.ps1` runs it with the rest of the checks.
+
 ## Build from source
 
 JDK 17 and the Android SDK are required (`JAVA_HOME`, `ANDROID_HOME`).

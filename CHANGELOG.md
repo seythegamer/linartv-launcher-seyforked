@@ -9,6 +9,7 @@ Every release gets an entry here in Polish and English. Newest first.
 
 Nowe
 - **Odinstalowanie aplikacji z launchera.** Przytrzymaj OK na kafelku w docku albo na liście aplikacji i wybierz „Odinstaluj aplikację” — telewizor pokazuje wtedy swoje okno odinstalowywania, więc nie trzeba wchodzić w Ustawienia telewizora. Aplikacje systemowe launcher opisuje komunikatem zamiast próbować je usuwać, a po odinstalowaniu kafelek i pozycja na liście znikają same. Krótkie naciśnięcie OK nadal otwiera aplikację — także na liście, gdzie do tej pory wystarczyło samo naciśnięcie.
+- **„Zamknij aplikacje” naprawdę zamyka aplikacje.** Kafelek bierze teraz wszystkie aplikacje z docku i listy (wcześniej kilka nazw wpisanych na sztywno) i pomija tylko to, czego telewizor potrzebuje: launcher, interfejs systemowy, Ustawienia, Sklep Play, usługi Google, obsługę Chromecasta i stos telewizora. Na urządzeniu z rootem wykonuje `am force-stop`, czyli prawdziwe zamknięcie razem z usługami; bez roota prosi system o zwolnienie procesów w tle. Komunikat podaje liczbę aplikacji i ile pamięci RAM wróciło, a wskaźnik RAM odświeża się od razu. Nazwy pakietów są sprawdzane przed trafieniem do powłoki (test w `tests/AppCleanupCheck.java`).
 
 Ulepszone
 - **Lżejsza pamięć.** Zdjęcie tapety jest skalowane dokładnie do rozmiaru ekranu (wcześniej do 2560×1440), okładka Spotify do wielkości paska, a miniatury w galerii tapet są mniejsze. Własne ikony docku mają najwyżej 384 px — starsze, 512-pikselowe, są zmniejszane przy wczytaniu. Ikony, herby i pogoda mają cache z limitem pamięci, a przy braku pamięci system zwalnia je od razu (`onTrimMemory`).
@@ -22,6 +23,7 @@ Do wiadomości
 
 New
 - **Uninstall an app from the launcher.** Hold OK on a dock tile or on a tile in the app list and choose "Uninstall app" — the TV then shows its own uninstall window, so the TV settings never have to be opened. System apps are explained instead of touched, and once an app is gone its tile and its place in the list disappear on their own. A short OK still opens the app, including in the list, where a single press used to be enough.
+- **"Close apps" really closes apps.** The tile now takes every app from the dock and the app list (previously a handful of names typed into the code) and skips only what the TV needs: the launcher, System UI, Settings, Play Store, Google services, the Chromecast receiver and the vendor television stack. On a rooted box it runs `am force-stop`, a real force stop that also takes down services; without root it asks Android to drop each app's background processes. The toast reports the app count and how much RAM came back, and the RAM widget refreshes at once. Package names are validated before they reach a shell (`tests/AppCleanupCheck.java` covers it).
 
 Improved
 - **Lighter memory use.** A wallpaper photo is scaled exactly to the screen (previously up to 2560×1440), the Spotify cover to the bar size, and gallery thumbnails are smaller. Custom dock icons are kept at most 384 px — older 512-pixel ones shrink when loaded. Icons, crests and weather art use byte-limited caches, and the system can drop them immediately under memory pressure (`onTrimMemory`).

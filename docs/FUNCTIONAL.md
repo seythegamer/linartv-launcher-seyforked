@@ -28,7 +28,7 @@ LinarTV to ekran główny (launcher) dla Android TV z myślą o kibicach polskie
 #### Ustawienia (zębatka)
 | Kafelek | Co robi |
 |---|---|
-| Zamknij aplikacje | Prosi system o zamknięcie nieaktywnych aplikacji w tle; nie dotyka launchera ani usług systemowych |
+| Zamknij aplikacje | Zamyka aplikacje z docku i listy, których telewizor nie potrzebuje. Na urządzeniu z rootem wywołuje `am force-stop` (naprawdę kończy aplikacje razem z usługami), bez roota prosi system o zwolnienie procesów w tle. Nie rusza launchera, interfejsu systemowego, Ustawień, Sklepu Play, usług Google, obsługi Chromecasta, stosu telewizora ani włączonej sieci VPN. Komunikat podaje liczbę aplikacji i ilość zwolnionej pamięci |
 | Widoczność przycisków | Ukrywa widżet RAM, Oglądaj telewizję i Źródła; pozostałe elementy przesuwają się do prawej |
 | Wygaszacz | Pokaz Twoich zdjęć po wybranym czasie bezczynności (domyślnie 5 min) |
 | Wygląd launchera | Automatycznie (dzień 08:00–19:59, noc 20:00–07:59), zawsze jasny, zawsze ciemny, własne godziny oraz galeria tapet (w tym zdjęcia z telefonu przez QR kod i domowe Wi-Fi: 6-cyfrowy kod, limit prób) z opcją **„Tapeta śledzi pogodę”**: 7 rodzajów pogody, każdy w wersji dziennej i nocnej — zob. [WEATHER-WALLPAPERS.md](WEATHER-WALLPAPERS.md) |
@@ -155,7 +155,7 @@ sequenceDiagram
 ### 5. Znane ograniczenia
 - Darmowe API Open-Meteo jest przeznaczone do użytku niekomercyjnego; LinarTV pobiera prognozę najwyżej co 30 minut.
 - Gdy kalendarzeligowe.pl nie podaje potwierdzonej godziny meczu, karta pokazuje sam dzień.
-- Zamykanie aplikacji w tle zależy od systemu: Android może odmówić zamknięcia albo uruchomić aplikację ponownie.
+- Zamykanie aplikacji: pełne `am force-stop` działa tylko na urządzeniu z rootem (np. boks AOSP z `su`). Bez roota Android pozwala jedynie zwolnić procesy w tle, więc aplikacja z działającą usługą może wrócić; system może też uruchomić aplikację ponownie.
 
 ---
 
@@ -184,7 +184,7 @@ LinarTV is a home screen (launcher) for Android TV built for Polish football fan
 
 | Tile | What it does |
 |---|---|
-| Close apps | Asks Android to stop inactive background apps; never touches the launcher or system services |
+| Close apps | Closes the apps from the dock and the app list that the TV does not need. On a rooted box it runs `am force-stop` (a real force stop, services included); without root it asks Android to drop each app's background processes. It never touches the launcher, System UI, Settings, Play Store, Google services, Chromecast, the vendor TV stack or an active VPN. The toast reports the app count and the memory freed |
 | Buttons visibility | Hides the RAM widget, Watch TV and Inputs; the remaining items move to the right |
 | Screensaver | Slideshow of your photos after the chosen idle time (5 min by default) |
 | Launcher appearance | Automatic (day 08:00–19:59, night 20:00–07:59), always light, always dark, custom hours, plus the wallpaper gallery (including phone photos via QR code over home Wi-Fi: 6-digit code, attempt limit) with **"Wallpaper follows the weather"**: 7 weather kinds, each in a day and a night version — see [WEATHER-WALLPAPERS.md](WEATHER-WALLPAPERS.md) |
@@ -228,4 +228,4 @@ See the component and sequence diagrams [above](#3-przepływ-danych-uml) — the
 ### 5. Known limitations
 - The free Open-Meteo API is meant for non-commercial use; LinarTV fetches the forecast at most every 30 minutes.
 - When kalendarzeligowe.pl has no confirmed kick-off time, the card shows the day only.
-- Closing background apps depends on the system: Android may refuse or restart them.
+- Closing apps: a full `am force-stop` works only on a rooted device (an AOSP box with `su`, for example). Without root Android only allows dropping background processes, so an app with a running service can come back; the system may also restart an app on its own.

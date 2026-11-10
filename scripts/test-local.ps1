@@ -9,6 +9,10 @@ New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Compilation of local checks failed.' }
 & $runtime -cp $outputPath com.linart.tvpreview.LauncherTimingCheck
 if ($LASTEXITCODE -ne 0) { throw 'Local checks failed.' }
+& $compiler -encoding UTF-8 -d $outputPath (Join-Path $projectRoot 'app\src\main\java\com\linart\tvpreview\AppCleanup.java') (Join-Path $projectRoot 'tests\AppCleanupCheck.java')
+if ($LASTEXITCODE -ne 0) { throw 'Compilation of app cleanup checks failed.' }
+& $runtime -cp $outputPath com.linart.tvpreview.AppCleanupCheck
+if ($LASTEXITCODE -ne 0) { throw 'App cleanup checks failed.' }
 & $compiler -encoding UTF-8 -d $outputPath (Join-Path $projectRoot 'app\src\main\java\com\linart\tvpreview\BlurPixels.java') (Join-Path $projectRoot 'tests\BlurPixelsCheck.java')
 if ($LASTEXITCODE -ne 0) { throw 'Compilation of blur checks failed.' }
 & $runtime -cp $outputPath com.linart.tvpreview.BlurPixelsCheck
