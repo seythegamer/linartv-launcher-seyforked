@@ -135,6 +135,21 @@ Everything sits on top of upstream `main` (`2a17480`). The app still reports `ve
   `tests/AppCleanupCheck.java` can check them on a desktop JVM — including command-injection attempts such
   as `a; reboot` or `$(id)`. `scripts/test-local.ps1` runs it with the rest of the checks.
 
+### 7. Android TV settings: choose which settings app opens
+
+- Some boxes ship **two settings apps**: the phone-style AOSP one (`com.android.settings`) and the TV side
+  panel that looks like Android TV (`com.android.tv.settings`). Both answer `android.settings.SETTINGS`, so
+  the system picks by intent priority and the button always opened the same one.
+- **Hold OK** on **Android TV settings** now opens a chooser listing every installed app that answers that
+  intent — the app label, with the package name added when two apps share a label. The default is ticked
+  and focused. Picking an entry saves it (`settings_target` in the launcher preferences) and a short press
+  opens that app from then on. With nothing saved the launcher keeps the old behaviour and lets Android
+  resolve the intent.
+- The saved app is opened by explicit component, with the plain intent as a fallback. If the app is
+  uninstalled the stored choice is dropped on the next press, so the button cannot get stuck on a missing
+  package.
+- The choice is stored per device; a box with only one settings app skips the menu.
+
 ## Build from source
 
 JDK 17 and the Android SDK are required (`JAVA_HOME`, `ANDROID_HOME`).

@@ -904,7 +904,13 @@ public final class DashboardActivity extends Activity {
         }
         TextView system = setupButton(tr("Ustawienia Android TV", "Android TV settings"));
         system.setGravity(Gravity.CENTER);
-        system.setOnClickListener(v -> openSettings(Settings.ACTION_SETTINGS));
+        system.setOnClickListener(v -> openSystemSettings());
+        // A hold asks which settings app this button should open; a box with only one skips the menu.
+        system.setLongClickable(true);
+        system.setOnLongClickListener(v -> {
+            showSettingsChooser();
+            return true;
+        });
         addSettingsControl(content, system, 50);
         LinearLayout footer = new LinearLayout(this);
         TextView language = setupButton(tr("Język", "Language"));
@@ -5521,6 +5527,82 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
         try { startActivity(new Intent(action)); }
         catch (Exception e) { Toast.makeText(this, tr("Ustawienia niedostępne", "Settings unavailable"),
                 Toast.LENGTH_SHORT).show(); }
+    }
+
+    /** Every app that answers {@code android.settings.SETTINGS}; a TV box usually has two. */
+    private List<ResolveInfo> settingsChoices() {
+        return getPackageManager().queryIntentActivities(new Intent(Settings.ACTION_SETTINGS), 0);
+    }
+
+    private static String settingsComponent(ResolveInfo info) {
+        return new android.content.ComponentName(info.activityInfo.packageName, info.activityInfo.name)
+                .flattenToString();
+    }
+
+    /** The app Android would open by itself, so the menu can tick it before anything was chosen. */
+    private String resolvedSettingsTarget() {
+        ResolveInfo info = getPackageManager().resolveActivity(
+                new Intent(Settings.ACTION_SETTINGS), PackageManager.MATCH_DEFAULT_ONLY);
+        return info == null ? null : settingsComponent(info);
+    }
+
+    private String settingsTarget() {
+        return getPreferences(MODE_PRIVATE).getString("settings_target", null);
+    }
+
+    /** Opens the chosen settings app; without a choice the system decides, as it always did. */
+    private void openSystemSettings() {
+        List<String> available = new ArrayList<>();
+        for (ResolveInfo info : settingsChoices()) available.add(settingsComponent(info));
+        String saved = settingsTarget();
+        String target = SettingsTargets.choose(saved, available, resolvedSettingsTarget());
+        // A saved app that no longer exists is forgotten instead of being retried on every press.
+        if (saved != null && !saved.equals(target))
+            getPreferences(MODE_PRIVATE).edit().remove("settings_target").apply();
+        android.content.ComponentName component =
+                target == null ? null : android.content.ComponentName.unflattenFromString(target);
+        if (component != null) {
+            try {
+                startActivity(new Intent(Settings.ACTION_SETTINGS).setComponent(component));
+                return;
+            } catch (Exception ignored) { }
+        }
+        openSettings(Settings.ACTION_SETTINGS);
+    }
+
+    /** Long press on the settings button: choose which settings app opens by default. */
+    private void showSettingsChooser() {
+        List<ResolveInfo> choices = settingsChoices();
+        if (choices.isEmpty()) {
+            Toast.makeText(this, tr("Ustawienia niedostępne", "Settings unavailable"),
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        List<String> components = new ArrayList<>();
+        String[] labels = new String[choices.size()];
+        java.util.Set<String> used = new HashSet<>();
+        for (int i = 0; i < choices.size(); i++) {
+            ResolveInfo info = choices.get(i);
+            components.add(settingsComponent(info));
+            String label = String.valueOf(info.loadLabel(getPackageManager()));
+            // Both apps may call themselves "Settings"; a TV panel says so, anything else shows its package.
+            if (used.add(label)) {
+                labels[i] = label;
+            } else {
+                String pkg = info.activityInfo.packageName;
+                labels[i] = label + " (" + (pkg.toLowerCase(Locale.ROOT).contains("tv")
+                        ? "Android TV" : pkg) + ")";
+            }
+        }
+        int current = components.indexOf(
+                SettingsTargets.choose(settingsTarget(), components, resolvedSettingsTarget()));
+        showChoiceDialog(tr("Ustawienia – otwieraj domyślnie", "Settings – open by default"),
+                labels, current, which -> {
+                    getPreferences(MODE_PRIVATE).edit()
+                            .putString("settings_target", components.get(which)).apply();
+                    Toast.makeText(this, tr("Domyślnie: ", "Default: ") + labels[which],
+                            Toast.LENGTH_SHORT).show();
+                });
     }
 
     private void showSavedWallpaper(ImageView image) {

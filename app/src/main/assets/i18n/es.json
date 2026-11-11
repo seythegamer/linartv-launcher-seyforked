@@ -151,6 +151,8 @@
   " · memory was already clean": " · la memoria ya estaba libre",
   "No background apps": "No hay apps en segundo plano",
   "Could not close apps": "No se pudieron cerrar las apps",
+  "Settings – open by default": "Ajustes – abrir por defecto",
+  "Default: ": "Predeterminado: ",
   "Settings unavailable": "Ajustes no disponibles",
   "Add photos": "Añadir fotos",
   "The TV has no local network address. Connect it and your phone to the same Wi-Fi network.": "El televisor no tiene dirección de red local. Conecta el televisor y el móvil a la misma red wifi.",

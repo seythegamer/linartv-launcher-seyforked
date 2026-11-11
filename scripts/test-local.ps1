@@ -13,6 +13,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Local checks failed.' }
 if ($LASTEXITCODE -ne 0) { throw 'Compilation of app cleanup checks failed.' }
 & $runtime -cp $outputPath com.linart.tvpreview.AppCleanupCheck
 if ($LASTEXITCODE -ne 0) { throw 'App cleanup checks failed.' }
+& $compiler -encoding UTF-8 -d $outputPath (Join-Path $projectRoot 'app\src\main\java\com\linart\tvpreview\SettingsTargets.java') (Join-Path $projectRoot 'tests\SettingsTargetsCheck.java')
+if ($LASTEXITCODE -ne 0) { throw 'Compilation of settings target checks failed.' }
+& $runtime -cp $outputPath com.linart.tvpreview.SettingsTargetsCheck
+if ($LASTEXITCODE -ne 0) { throw 'Settings target checks failed.' }
 & $compiler -encoding UTF-8 -d $outputPath (Join-Path $projectRoot 'app\src\main\java\com\linart\tvpreview\BlurPixels.java') (Join-Path $projectRoot 'tests\BlurPixelsCheck.java')
 if ($LASTEXITCODE -ne 0) { throw 'Compilation of blur checks failed.' }
 & $runtime -cp $outputPath com.linart.tvpreview.BlurPixelsCheck

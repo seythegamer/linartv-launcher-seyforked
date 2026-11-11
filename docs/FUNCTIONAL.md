@@ -35,7 +35,7 @@ LinarTV to ekran główny (launcher) dla Android TV z myślą o kibicach polskie
 | Pogoda | Wybór miasta (dowolny kraj) i jednostki (°C lub °F) |
 | Kalendarze | Kreator „Twoje kluby” (liga → klub, dla IV ligi liga → województwo → klub; jeden lub dwa) oraz „Odśwież teraz” |
 
-Pod kafelkami: wolna pamięć RAM i miejsce na dysku, skrót do ustawień Android TV, Język, O aplikacji.
+Pod kafelkami: wolna pamięć RAM i miejsce na dysku, skrót do ustawień Android TV (**przytrzymanie OK wybiera, które ustawienia ma otwierać** — zwykłe ustawienia AOSP albo panel w stylu Android TV, gdy telewizor ma oba), Język, O aplikacji.
 
 #### Pierwsze uruchomienie
 Kreator prowadzi przez dwa kroki: „Twoje kluby”, a potem „Twoje aplikacje” (wybór docka spośród zainstalowanych aplikacji).
@@ -191,7 +191,7 @@ LinarTV is a home screen (launcher) for Android TV built for Polish football fan
 | Weather | City (any country) and unit (°C or °F) |
 | Calendars | "Your clubs" wizard (league → club, for IV liga league → region → club; one or two) and "Refresh now" |
 
-Below the tiles: free RAM and storage, a shortcut to Android TV settings, Language, About.
+Below the tiles: free RAM and storage, a shortcut to Android TV settings (**holding OK chooses which settings app it opens** — plain AOSP settings or the Android-TV-style panel when the box has both), Language, About.
 
 **First run:** a two-step wizard — "Your clubs", then "Your apps" (dock picked from installed apps).
 
