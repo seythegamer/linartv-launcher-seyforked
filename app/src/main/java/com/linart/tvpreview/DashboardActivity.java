@@ -3,7 +3,10 @@ package com.linart.tvpreview;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.Dialog;
+import android.content.Context;
+import android.content.BroadcastReceiver;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Canvas;
@@ -296,6 +299,9 @@ public final class DashboardActivity extends Activity {
     private Bitmap popupBlurBitmap;
     private boolean english;
     private Translations translations;
+    /** Refreshes the app drawer when another package is installed or removed while LinarTV runs. */
+    private final BroadcastReceiver packageReceiver = new PackageReceiver();
+    private boolean packageReceiverRegistered;
     private boolean fahrenheit;
     private Locale displayLocale() { return translations.locale(); }
     private String displayDatePattern() {
@@ -425,6 +431,15 @@ public final class DashboardActivity extends Activity {
             updateSpotifyBar();
         });
         spotify.start();
+        if (!packageReceiverRegistered) {
+            IntentFilter packages = new IntentFilter();
+            packages.addAction(Intent.ACTION_PACKAGE_ADDED);
+            packages.addAction(Intent.ACTION_PACKAGE_REMOVED);
+            packages.addAction(Intent.ACTION_PACKAGE_CHANGED);
+            packages.addAction(Intent.ACTION_MY_PACKAGE_REPLACED);
+            registerReceiver(packageReceiver, packages);
+            packageReceiverRegistered = true;
+        }
         checkForUpdate(false);
         dashboardVisible = true;
         handler.removeCallbacks(updateTime);
@@ -443,6 +458,10 @@ public final class DashboardActivity extends Activity {
         handler.removeCallbacks(ramMeterTick);
         handler.removeCallbacks(startScreensaver);
         hideScreensaver();
+        if (packageReceiverRegistered) {
+            unregisterReceiver(packageReceiver);
+            packageReceiverRegistered = false;
+        }
         super.onPause();
     }
 
@@ -4962,6 +4981,51 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
         addMainDrawerRow(rows, dockLabels, dockPackages.toArray(new String[0]));
         populateExtraApps(rows);
         drawerRowsLoaded = true;
+    }
+
+    /**
+     * Rebuilds the app drawer rows from the current package manager state. Called when a package is
+     * installed or removed while LinarTV runs, so the list shows newly installed apps and drops
+     * uninstalled ones instead of keeping a stale cached list.
+     */
+    private void refreshDrawerRows() {
+        if (drawerRows == null) return;
+        // Update dock package list to reflect any new or removed apps
+        dockPackages.clear();
+        dockPackages.addAll(resolveDock());
+        drawerRows.removeAllViews();
+        extraAppRows.clear();
+        drawerRowsLoaded = false;
+        buildDrawerRows(drawerRows);
+        if (!appDrawerOpen) return;
+        // Keep the remote on a real tile after the rebuild instead of on a view that no longer exists.
+        int targetRow = Math.min(drawerFocusRow, Math.max(0, extraAppRows.size() - 1));
+        List<View> row = extraAppRows.isEmpty() ? null : extraAppRows.get(targetRow);
+        View target = row == null || row.isEmpty() ? null
+                : row.get(Math.min(drawerFocusColumn, row.size() - 1));
+        drawerFocusRow = targetRow;
+        drawerFocusColumn = target == null ? 0 : Math.min(drawerFocusColumn, row.size() - 1);
+        if (target != null) target.requestFocus();
+        else if (dockExpand != null && dockExpand.hasFocus()) dockExpand.requestFocus();
+    }
+
+    /**
+     * Broadcast receiver for package changes while LinarTV is running. Resets the cached app-drawer
+     * list so newly installed apps appear and removed apps disappear without rebuilding the whole
+     * dashboard.
+     */
+    private final class PackageReceiver extends BroadcastReceiver {
+        @Override public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (action == null) return;
+            if (!Intent.ACTION_PACKAGE_ADDED.equals(action)
+                    && !Intent.ACTION_PACKAGE_REMOVED.equals(action)
+                    && !Intent.ACTION_PACKAGE_CHANGED.equals(action)
+                    && !Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)) return;
+            // Rebuild the drawer off the UI thread? PackageManager reads are cheap (~20 ms) and the
+            // receiver runs on the main thread, so do it directly; the list only has to be fresh.
+            handler.post(DashboardActivity.this::refreshDrawerRows);
+        }
     }
 
     private void openAppDrawer(int focusRow, int focusColumn) {
