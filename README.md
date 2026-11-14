@@ -46,7 +46,7 @@ Everything sits on top of upstream `main` (`2a17480`). The app still reports `ve
 
 - A **RAM readout** (used / total) sits left of Watch TV, Inputs and Settings, drawn like the round buttons.
   The top-right group packs against the right edge, so hiding any of the buttons leaves no gap.
-- A **Buttons visibility** panel in Settings with switches for the RAM widget, Watch TV and Inputs. The choices
+- A **Visibility** panel in Settings with switches for the RAM widget, Watch TV and Inputs. The choices
   are stored on the device and applied when the panel closes.
 - **Wallpapers** moved from their own settings tile into **Launcher appearance**; the freed tile is the new
   visibility panel.

@@ -29,13 +29,13 @@ LinarTV to ekran główny (launcher) dla Android TV z myślą o kibicach polskie
 | Kafelek | Co robi |
 |---|---|
 | Zamknij aplikacje | Zamyka aplikacje z docku i listy, których telewizor nie potrzebuje. Na urządzeniu z rootem wywołuje `am force-stop` (naprawdę kończy aplikacje razem z usługami), bez roota prosi system o zwolnienie procesów w tle. Nie rusza launchera, interfejsu systemowego, Ustawień, Sklepu Play, usług Google, obsługi Chromecasta, stosu telewizora ani włączonej sieci VPN. Komunikat podaje liczbę aplikacji i ilość zwolnionej pamięci |
-| Widoczność przycisków | Ukrywa widżet RAM, Oglądaj telewizję i Źródła; pozostałe elementy przesuwają się do prawej |
+| Widoczność | Ukrywa widżet RAM, Oglądaj telewizję i Źródła; pozostałe elementy przesuwają się do prawej, a także zawiera przełącznik „Pokaż adres IP”. Gdy włączony, lokalny adres IP telewizora pokazuje się obok nagłówka „Ustawienia”. |
 | Wygaszacz | Pokaz Twoich zdjęć po wybranym czasie bezczynności (domyślnie 5 min) |
 | Wygląd launchera | Automatycznie (dzień 08:00–19:59, noc 20:00–07:59), zawsze jasny, zawsze ciemny, własne godziny oraz galeria tapet (w tym zdjęcia z telefonu przez QR kod i domowe Wi-Fi: 6-cyfrowy kod, limit prób) z opcją **„Tapeta śledzi pogodę”**: 7 rodzajów pogody, każdy w wersji dziennej i nocnej — zob. [WEATHER-WALLPAPERS.md](WEATHER-WALLPAPERS.md) |
 | Pogoda | Wybór miasta (dowolny kraj) i jednostki (°C lub °F) |
 | Kalendarze | Kreator „Twoje kluby” (liga → klub, dla IV ligi liga → województwo → klub; jeden lub dwa) oraz „Odśwież teraz” |
 
-Pod kafelkami: wolna pamięć RAM i miejsce na dysku, skrót do ustawień Android TV (**przytrzymanie OK wybiera, które ustawienia ma otwierać** — zwykłe ustawienia AOSP albo panel w stylu Android TV, gdy telewizor ma oba), Język, O aplikacji.
+Pod kafelkami: wolna pamięć RAM i miejsce na dysku, skrót do ustawień Android TV (**przytrzymanie OK wybiera, które ustawienia ma otwierać** — zwykłe ustawienia AOSP albo panel w stylu Android TV, gdy telewizor ma oba), Język, O aplikacji (z przyciskiem „Sprawdź aktualizacje”, który pobiera z GitHuba changelog i pozwala zaktualizować aplikację bez wychodzenia z launchera).
 
 #### Pierwsze uruchomienie
 Kreator prowadzi przez dwa kroki: „Twoje kluby”, a potem „Twoje aplikacje” (wybór docka spośród zainstalowanych aplikacji).
@@ -185,13 +185,13 @@ LinarTV is a home screen (launcher) for Android TV built for Polish football fan
 | Tile | What it does |
 |---|---|
 | Close apps | Closes the apps from the dock and the app list that the TV does not need. On a rooted box it runs `am force-stop` (a real force stop, services included); without root it asks Android to drop each app's background processes. It never touches the launcher, System UI, Settings, Play Store, Google services, Chromecast, the vendor TV stack or an active VPN. The toast reports the app count and the memory freed |
-| Buttons visibility | Hides the RAM widget, Watch TV and Inputs; the remaining items move to the right |
+| Visibility | Hides the RAM widget, Watch TV and Inputs; the remaining items move to the right, and includes a "Show IP address" switch. When on, the TV's local LAN IP is shown beside the "Settings" header. |
 | Screensaver | Slideshow of your photos after the chosen idle time (5 min by default) |
 | Launcher appearance | Automatic (day 08:00–19:59, night 20:00–07:59), always light, always dark, custom hours, plus the wallpaper gallery (including phone photos via QR code over home Wi-Fi: 6-digit code, attempt limit) with **"Wallpaper follows the weather"**: 7 weather kinds, each in a day and a night version — see [WEATHER-WALLPAPERS.md](WEATHER-WALLPAPERS.md) |
 | Weather | City (any country) and unit (°C or °F) |
 | Calendars | "Your clubs" wizard (league → club, for IV liga league → region → club; one or two) and "Refresh now" |
 
-Below the tiles: free RAM and storage, a shortcut to Android TV settings (**holding OK chooses which settings app it opens** — plain AOSP settings or the Android-TV-style panel when the box has both), Language, About.
+Below the tiles: free RAM and storage, a shortcut to Android TV settings (**holding OK chooses which settings app it opens** — plain AOSP settings or the Android-TV-style panel when the box has both), Language, About (with a "Check for updates now" button that fetches the changelog from GitHub and lets you update the app without leaving the launcher).
 
 **First run:** a two-step wizard — "Your clubs", then "Your apps" (dock picked from installed apps).
 

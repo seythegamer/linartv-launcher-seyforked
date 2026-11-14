@@ -917,7 +917,10 @@ public final class DashboardActivity extends Activity {
         sideSurface.setColor(night ? 0xFF142548 : 0xFFF5F2EA);
         sideSurface.setCornerRadii(new float[]{px(26), px(26), 0, 0, 0, 0, px(26), px(26)});
         content.setBackground(sideSurface);
-        popupTitle(content, tr("Ustawienia", "Settings"));
+        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+        String ip = null;
+        if (prefs.getBoolean("show_ip_address", true)) ip = PhotoUploadServer.localIpv4();
+        popupTitle(content, tr("Ustawienia", "Settings"), ip);
         View cleanup = settingsTile(tr("Zamknij aplikacje", "Close apps"),
                 R.drawable.ic_toolbar_cleanup, this::closeBackgroundApps);
         settingsFocusable(cleanup).setContentDescription(
@@ -930,7 +933,7 @@ public final class DashboardActivity extends Activity {
                 this::showWeatherSettings);
         View calendars = settingsTile(tr("Kalendarze", "Calendars"),
                 R.drawable.ic_settings_calendar, this::showCalendarSettings);
-        View buttons = settingsTile(tr("Widoczność przycisków", "Buttons visibility"),
+        View buttons = settingsTile(tr("Widoczność", "Visibility"),
                 R.drawable.ic_settings_visibility, this::showButtonsVisibility);
         LinearLayout grid = new LinearLayout(this);
         grid.setOrientation(LinearLayout.VERTICAL);
@@ -975,19 +978,7 @@ public final class DashboardActivity extends Activity {
         language.setOnClickListener(v -> showLanguageSetup());
         TextView about = setupButton(tr("O aplikacji", "About"));
         about.setGravity(Gravity.CENTER);
-        about.setOnClickListener(v -> showMessageDialog("LinarTV " + appVersion(),
-                tr("Launcher dla Android TV\n\n"
-                        + "Terminarze i herby polskich klubów: kalendarzeligowe.pl\n"
-                        + "Terminarze pozostałych klubów: fixtur.es\n"
-                        + "Herby pozostałych klubów: football-logos.cc\n"
-                        + "Pogoda: Open-Meteo.com (CC BY 4.0) · ikony Meteocons (MIT)\n\n"
-                        + "Herby należą do klubów. Na prośbę klubu lub źródła usuniemy herb.",
-                   "Launcher for Android TV\n\n"
-                        + "Polish club fixtures and crests: kalendarzeligowe.pl\n"
-                        + "Other club fixtures: fixtur.es\n"
-                        + "Other club crests: football-logos.cc\n"
-                        + "Weather: Open-Meteo.com (CC BY 4.0) · Meteocons icons (MIT)\n\n"
-                        + "Crests belong to their clubs. We remove a crest on request of the club or the source.")));
+        about.setOnClickListener(v -> showAbout());
         // Short footer buttons: one line, the text shrinks for long words ("Informazioni").
         for (TextView b : new TextView[]{language, about}) fitOneLine(b);
         footer.addView(language, new LinearLayout.LayoutParams(0, px(46), 1));
@@ -1254,16 +1245,16 @@ public final class DashboardActivity extends Activity {
         Dialog dialog = new Dialog(this);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         LinearLayout content = popupContent();
-        popupTitle(content, tr("Widoczność przycisków", "Buttons visibility"));
+        popupTitle(content, tr("Widoczność", "Visibility"));
         popupDescription(content, tr("Zaznacz elementy widoczne w prawym górnym rogu. "
                         + "Ukryte znikają, a pozostałe przesuwają się do prawej.",
                 "Tick the items shown in the top-right corner. Hidden ones disappear "
                         + "and the rest move to the right."));
-        String[] keys = {"toolbar_ram", "toolbar_watch_tv", "toolbar_inputs"};
+        String[] keys = {"toolbar_ram", "toolbar_watch_tv", "toolbar_inputs", "show_ip_address"};
         int[] icons = {R.drawable.ic_settings_visibility, R.drawable.ic_toolbar_television,
-                R.drawable.ic_toolbar_sources};
+                R.drawable.ic_toolbar_sources, R.drawable.ic_settings_visibility};
         String[] labels = {tr("Pamięć RAM", "RAM"), tr("Oglądaj telewizję", "Watch TV"),
-                tr("Źródła", "Inputs")};
+                tr("Źródła", "Inputs"), tr("Pokaż adres IP", "Show IP address")};
         View first = null;
         final boolean[] changed = {false};
         for (int i = 0; i < keys.length; i++) {
@@ -1287,7 +1278,7 @@ public final class DashboardActivity extends Activity {
         if (first != null) first.requestFocus();
     }
 
-    /** One switchable line of the "Buttons visibility" panel: icon, name and a tick. */
+    /** One switchable line of the "Visibility" panel: icon, name and a tick. */
     private View visibilityRow(String label, int icon, String key, SharedPreferences prefs,
                                boolean[] changed) {
         return switchRow(label, icon, () -> prefs.getBoolean(key, true), () -> {
@@ -1513,6 +1504,116 @@ public final class DashboardActivity extends Activity {
         catch (PackageManager.NameNotFoundException e) { return ""; }
     }
 
+    /** About screen: credits plus a "Check for updates now" button. */
+    private void showAbout() {
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        LinearLayout content = popupContent();
+        popupTitle(content, tr("O aplikacji", "About"));
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout body = new LinearLayout(this);
+        body.setOrientation(LinearLayout.VERTICAL);
+        body.setClipChildren(false);
+        body.setClipToPadding(false);
+        TextView info = new TextView(this);
+        info.setText(tr(
+                "Launcher dla Android TV\n\n"
+                        + "Terminarze i herby polskich klubów: kalendarzeligowe.pl\n"
+                        + "Terminarze pozostałych klubów: fixtur.es\n"
+                        + "Herby pozostałych klubów: football-logos.cc\n"
+                        + "Pogoda: Open-Meteo.com (CC BY 4.0) · ikony Meteocons (MIT)\n\n"
+                        + "Herby należą do klubów. Na prośbę klubu lub źródła usuniemy herb.",
+                "Launcher for Android TV\n\n"
+                        + "Polish club fixtures and crests: kalendarzeligowe.pl\n"
+                        + "Other club fixtures: fixtur.es\n"
+                        + "Other club crests: football-logos.cc\n"
+                        + "Weather: Open-Meteo.com (CC BY 4.0) · Meteocons icons (MIT)\n\n"
+                        + "Crests belong to their clubs. We remove a crest on request of the club or the source."));
+        info.setTextColor(muted);
+        info.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(18));
+        body.addView(info);
+        scroll.addView(body);
+        content.addView(scroll, new LinearLayout.LayoutParams(-1, px(300)));
+        TextView checkUpdate = setupButton(tr("Sprawdź aktualizacje", "Check for updates now"));
+        checkUpdate.setGravity(Gravity.CENTER);
+        checkUpdate.setOnClickListener(v -> { dialog.dismiss(); checkForUpdateNow(); });
+        LinearLayout.LayoutParams cup = new LinearLayout.LayoutParams(-1, px(58));
+        cup.setMargins(0, px(16), 0, 0);
+        content.addView(checkUpdate, cup);
+        watchFit(content);
+        dialog.setContentView(content);
+        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        showDialogWithBlur(dialog);
+        dialog.getWindow().setLayout(px(820), -2);
+        checkUpdate.requestFocus();
+    }
+
+    /** User pressed "Check for updates now": force a GitHub check and show the result. */
+    private void checkForUpdateNow() {
+        new Thread(() -> {
+            AppUpdates.Release found = AppUpdates.check(this, true);
+            handler.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                if (found == null) {
+                    showMessageDialog(tr("Aktualizacje", "Updates"),
+                            tr("Masz najnowszą wersję LinarTV (" + appVersion() + ").",
+                                    "You're up to date — LinarTV " + appVersion() + "."));
+                } else {
+                    showUpdateDialog(found);
+                }
+            });
+        }, "update-check-now").start();
+    }
+
+    /** Popup with the release changelog and "Update now" / "Cancel" buttons. */
+    private void showUpdateDialog(AppUpdates.Release release) {
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        LinearLayout content = popupContent();
+        popupTitle(content, tr("Dostępna aktualizacja", "Update available"));
+        TextView version = new TextView(this);
+        version.setText("LinarTV " + release.version);
+        version.setTextColor(ink);
+        version.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(21));
+        version.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        content.addView(version, new LinearLayout.LayoutParams(-1, -2));
+        if (release.notes != null && !release.notes.isEmpty()) {
+            ScrollView scroll = new ScrollView(this);
+            LinearLayout notesBox = new LinearLayout(this);
+            notesBox.setOrientation(LinearLayout.VERTICAL);
+            notesBox.setClipChildren(false);
+            notesBox.setClipToPadding(false);
+            TextView notes = new TextView(this);
+            notes.setText(release.notes);
+            notes.setTextColor(muted);
+            notes.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(18));
+            notesBox.addView(notes);
+            scroll.addView(notesBox);
+            LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, px(260));
+            sp.setMargins(0, px(12), 0, px(18));
+            content.addView(scroll, sp);
+        }
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        TextView cancel = setupButton(tr("Anuluj", "Cancel"));
+        cancel.setGravity(Gravity.CENTER);
+        TextView update = setupButton(tr("Zainstaluj teraz", "Update now"));
+        update.setGravity(Gravity.CENTER);
+        actions.addView(cancel, new LinearLayout.LayoutParams(px(150), px(58)));
+        actions.addView(update, new LinearLayout.LayoutParams(px(180), px(58)));
+        LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(-1, -2);
+        ap.setMargins(0, px(8), 0, 0);
+        content.addView(actions, ap);
+        watchFit(content);
+        dialog.setContentView(content);
+        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        showDialogWithBlur(dialog);
+        dialog.getWindow().setLayout(px(780), -2);
+        cancel.setOnClickListener(v -> dialog.dismiss());
+        update.setOnClickListener(v -> { dialog.dismiss(); downloadUpdate(release); });
+        cancel.requestFocus();
+    }
+
     private void showCitySetup() {
         Dialog dialog = new Dialog(this);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -1617,12 +1718,33 @@ public final class DashboardActivity extends Activity {
     }
 
     private void popupTitle(LinearLayout content, String value) {
+        popupTitle(content, value, null);
+    }
+
+    /**
+     * Title with an optional smaller subtitle (e.g. the TV's LAN IP beside "Settings").
+     * The subtitle is shown in a muted colour so it never competes with the title.
+     */
+    private void popupTitle(LinearLayout content, String value, String sub) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
         TextView title = new TextView(this);
         title.setText(value);
         title.setTextColor(ink);
         title.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(32));
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        content.addView(title);
+        row.addView(title, new LinearLayout.LayoutParams(-2, -2));
+        if (sub != null && !sub.isEmpty()) {
+            TextView subView = new TextView(this);
+            subView.setText(sub);
+            subView.setTextColor(muted);
+            subView.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(20));
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-2, -2);
+            p.leftMargin = px(12);
+            row.addView(subView, p);
+        }
+        content.addView(row);
     }
 
     private TextView popupDescription(LinearLayout content, String value) {
@@ -2619,7 +2741,7 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
 
     /**
      * Top-right corner: the RAM readout and the two shortcuts sit left of Settings and are packed
-     * against it, so hiding one of them leaves no gap (see "Buttons visibility").
+     * against it, so hiding one of them leaves no gap (see "Visibility").
      */
     private void buildToolbar() {
         SharedPreferences prefs = getPreferences(MODE_PRIVATE);
