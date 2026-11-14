@@ -7,6 +7,8 @@ Plik czytają Codex, Claude Code i podobne narzędzia (Claude Code wczytuje go p
 
 ## English
 
+**Before changing code, read [docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md)** — repository map, runtime architecture, storage, data sources, tests and known traps.
+
 ### What this project is
 LinarTV Open is an Android TV home screen (launcher) for football fans: clock, Open-Meteo weather for any city worldwide, fixtures of one or two clubs (Polish clubs from kalendarzeligowe.pl, top 5 foreign leagues from fixtur.es), club search by name or voice, five interface languages, in-app updates from GitHub Releases, an app dock, wallpapers and a screensaver. One activity (`DashboardActivity`), plain Java, no Kotlin, no Compose. Read [docs/FUNCTIONAL.md](docs/FUNCTIONAL.md) first.
 
@@ -60,10 +62,13 @@ Work step by step and tell the user what each step does. Ask before every step t
 - **Club crests** are third-party marks, not MIT. The app loads them from kalendarzeligowe.pl (`/api/teams/{id}/logo`); for clubs without a crest there (mostly foreign clubs) from [football-logos.cc](https://football-logos.cc), credited in README, CRESTS.md and the app's About window, as the site asks. Do not add crest files to the repository. See [docs/CRESTS.md](docs/CRESTS.md).
 - **No secrets:** never commit keystores, passwords, IP addresses of the user's network or personal photos. Run `python scripts/audit_public.py` before every push.
 - Keep the remote-control (D-pad) navigation working: every new view must be focusable and reachable with arrows; Back closes popups first.
+- **No automatic commits, pushes, or releases.** Do not commit, push, tag, or release on your own. Every commit, push, or release must be approved by the user first, and every published release bumps `versionCode` by 1 and sets a semantic `versionName` in `app/build.gradle`; tag releases `vX.Y.Z`. See [docs/RELEASING.md](docs/RELEASING.md).
 
 ---
 
 ## Polski
+
+**Przed zmianą kodu przeczytaj [docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md)** — mapa repozytorium, architektura działania, przechowywanie danych, źródła, testy i znane pułapki.
 
 ### Czym jest projekt
 LinarTV Open to ekran główny (launcher) dla Android TV dla kibiców piłki: zegar, pogoda Open-Meteo dla dowolnego miasta na świecie, terminarz jednego lub dwóch klubów (polskie z kalendarzeligowe.pl, Top 5 lig zagranicznych z fixtur.es), wyszukiwanie klubu po nazwie lub głosem, pięć języków, aktualizacje z GitHub Releases, dock aplikacji, tapety i wygaszacz. Jedna aktywność (`DashboardActivity`), czysta Java, bez Kotlina i Compose. Najpierw przeczytaj [docs/FUNCTIONAL.md](docs/FUNCTIONAL.md).
@@ -96,3 +101,4 @@ Pracuj krok po kroku i mów użytkownikowi, co robi każdy krok. Pytaj przed ka�
 - **Herby** to znaki klubów, nie MIT. Aplikacja pobiera je z kalendarzeligowe.pl (`/api/teams/{id}/logo`); dla klubów bez herbu tam (głównie zagranicznych) z [football-logos.cc](https://football-logos.cc), z podaniem źródła w README, CRESTS.md i oknie „O aplikacji”, jak prosi strona; nie dodawaj plików herbów do repozytorium. Zob. [docs/CRESTS.md](docs/CRESTS.md).
 - **Bez sekretów:** nie commituj kluczy, haseł, adresów sieci użytkownika ani zdjęć. Przed każdym pushem uruchom `python scripts/audit_public.py`.
 - Zachowaj sterowanie pilotem: każdy nowy element musi mieć fokus i być osiągalny strzałkami; Wstecz najpierw zamyka okna.
+- **Nie rób automatycznych commitów, wypychania (push) ani wydań (release).** Nie commituj, nie wypychaj, nie taguj ani nie wydawaj samodzielnie. Każdy commit, push lub wydanie musi zostać najpierw zatwierdzone przez użytkownika, a każde wydanie zwiększa `versionCode` o 1 i ustawia semweryjny `versionName` w `app/build.gradle`; tag wydań `vX.Y.Z`. Zob. [docs/RELEASING.md](docs/RELEASING.md).
