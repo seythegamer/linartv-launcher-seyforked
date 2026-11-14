@@ -3,9 +3,9 @@ package com.linart.tvpreview;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.BroadcastReceiver;
 import android.content.Intent;
-import android.content.Context;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -921,14 +921,6 @@ public final class DashboardActivity extends Activity {
             update.setOnClickListener(v -> downloadUpdate(release));
             addSettingsControl(content, update, 50);
         }
-        // Manual check: forces a fresh request to GitHub instead of waiting for the daily auto-check.
-        TextView checkNow = setupButton(tr("Sprawdź aktualizacje", "Check for updates now"));
-        checkNow.setGravity(Gravity.CENTER);
-        checkNow.setOnClickListener(v -> {
-            checkForUpdate(true);
-            renderUpdateBar();
-        });
-        addSettingsControl(content, checkNow, 50);
         TextView system = setupButton(tr("Ustawienia Android TV", "Android TV settings"));
         system.setGravity(Gravity.CENTER);
         system.setOnClickListener(v -> openSystemSettings());
@@ -971,27 +963,6 @@ public final class DashboardActivity extends Activity {
         spotifyParams.leftMargin = px(12);
         footer.addView(spotifyAccess, spotifyParams);
         addSettingsControl(content, footer, 46);
-        // Local IP address shown so users can easily find the TV on the network.
-        String localIp = PhotoUploadServer.localIpv4();
-        if (localIp != null) {
-            LinearLayout ipRow = new LinearLayout(this);
-            ipRow.setOrientation(LinearLayout.HORIZONTAL);
-            ipRow.setGravity(Gravity.CENTER_VERTICAL);
-            TextView ipLabel = new TextView(this);
-            ipLabel.setText(tr("Adres IP", "Local IP"));
-            ipLabel.setTextColor(muted);
-            ipLabel.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(16));
-            ipLabel.setSingleLine(true);
-            TextView ipValue = new TextView(this);
-            ipValue.setText(localIp);
-            ipValue.setTextColor(ink);
-            ipValue.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(18));
-            ipValue.setSingleLine(true);
-            ipValue.setTypeface(Typeface.MONOSPACE);
-            ipRow.addView(ipLabel, new LinearLayout.LayoutParams(px(120), -2));
-            ipRow.addView(ipValue, new LinearLayout.LayoutParams(0, -2, 1));
-            addSettingsControl(content, ipRow, 30);
-        }
         watchFit(content);
         dialog.setContentView(content, new ViewGroup.LayoutParams(-1, -1));
         dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
@@ -5019,6 +4990,9 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
      */
     private void refreshDrawerRows() {
         if (drawerRows == null) return;
+        // Update dock package list to reflect any new or removed apps
+        dockPackages.clear();
+        dockPackages.addAll(resolveDock());
         drawerRows.removeAllViews();
         extraAppRows.clear();
         drawerRowsLoaded = false;
