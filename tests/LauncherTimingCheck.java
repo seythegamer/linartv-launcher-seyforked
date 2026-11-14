@@ -12,6 +12,14 @@ public final class LauncherTimingCheck {
                     == (minute < 495 || minute >= 1175), "Custom minute precision at " + minute);
             check(!LauncherTiming.isNight("light", minute, 480, 1200), "Forced light");
             check(LauncherTiming.isNight("dark", minute, 480, 1200), "Forced dark");
+            // Sunrise 06:00 (360), sunset 18:00 (1080): night before 06:00 and after 18:00
+            check(LauncherTiming.isNightAuto("auto", minute, 360, 1080)
+                    == (minute < 360 || minute >= 1080), "Sunrise/sunset auto at " + minute);
+            check(!LauncherTiming.isNightAuto("light", minute, 360, 1080), "Forced light with sun");
+            check(LauncherTiming.isNightAuto("dark", minute, 360, 1080), "Forced dark with sun");
+            // No sun data: fall back to fixed 08:00/20:00
+            check(LauncherTiming.isNightAuto("auto", minute, 0, 0)
+                    == (minute < 480 || minute >= 1200), "No sun data fallback at " + minute);
         }
         check(LauncherTiming.idleMillis(0) == 0, "Disabled saver");
         check(LauncherTiming.idleMillis(5) == 300_000L, "Default timeout");
@@ -19,7 +27,7 @@ public final class LauncherTimingCheck {
         check(LauncherTiming.idleMillis(1440) == 86_400_000L, "24 hour timeout");
         check(LauncherTiming.idleMillis(-1) == 0, "Negative value");
         check(LauncherTiming.idleMillis(Integer.MAX_VALUE) == 86_400_000L, "Overflow protection");
-        System.out.println("OK: 7206 scheduling and screensaver checks");
+        System.out.println("OK: 12966 scheduling and screensaver checks");
     }
 
     private static void check(boolean condition, String name) {

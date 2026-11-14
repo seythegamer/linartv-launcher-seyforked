@@ -3,7 +3,7 @@
 Każde wydanie ma tu wpis po polsku i po angielsku. Najnowsze na górze.
 Every release gets an entry here in Polish and English. Newest first.
 
-## 1.0.3 — niepublikowane / unreleased
+## 1.0.3 — 2026-11-14
 
 **Polski**
 
@@ -12,6 +12,7 @@ Nowe
 - **„Zamknij aplikacje” naprawdę zamyka aplikacje.** Kafelek bierze teraz wszystkie aplikacje z docku i listy (wcześniej kilka nazw wpisanych na sztywno) i pomija tylko to, czego telewizor potrzebuje: launcher, interfejs systemowy, Ustawienia, Sklep Play, usługi Google, obsługę Chromecasta i stos telewizora. Na urządzeniu z rootem wykonuje `am force-stop`, czyli prawdziwe zamknięcie razem z usługami; bez roota prosi system o zwolnienie procesów w tle. Komunikat podaje liczbę aplikacji i ile pamięci RAM wróciło, a wskaźnik RAM odświeża się od razu. Nazwy pakietów są sprawdzane przed trafieniem do powłoki (test w `tests/AppCleanupCheck.java`).
 - **Wybór ustawień pod przyciskiem „Ustawienia Android TV”.** Boksy z Androidem często mają dwa programy do ustawień: zwykłe ustawienia AOSP i panel w stylu Android TV (na tym boksie `com.android.settings` i `com.android.tv.settings`). Oba zgłaszają to samo polecenie systemowe, więc przycisk otwierał ten, który wybrał Android. Teraz **przytrzymanie OK** na przycisku pokazuje listę wszystkich programów ustawień, zaznacza aktualny i zapisuje wybór; krótkie naciśnięcie otwiera wybrany. Gdy zapisany program zniknie, launcher wraca do domyślnego. Wybór jest sprawdzany testem `tests/SettingsTargetsCheck.java`.
 - **Adres IP w ustawieniach.** W panelu ustawień (zębatka) na dole, obok języka, „O aplikacji” i Spotify, pokazuje się lokalny adres IP telewizora — łatwiej znaleźć go w sieci, np. przy instalacji przez ADB.
+- **Tryb automatyczny pod słońce.** W ustawieniach wyglądu launchera, przy trybie „Automatycznie” można wybrać, czy dzień i noc mają się zmieniać według wschodu i zachodu słońca dla ustawionego miasta pogody (dane z Open-Meteo), czy według własnych godzin. Domyślnie używany jest wschód/zachód słońca, gdy tylko pogoda jest dostępna.
 
 Ulepszone
 - **Lżejsza pamięć.** Zdjęcie tapety jest skalowane dokładnie do rozmiaru ekranu (wcześniej do 2560×1440), okładka Spotify do wielkości paska, a miniatury w galerii tapet są mniejsze. Własne ikony docku mają najwyżej 384 px — starsze, 512-pikselowe, są zmniejszane przy wczytaniu. Ikony, herby i pogoda mają cache z limitem pamięci, a przy braku pamięci system zwalnia je od razu (`onTrimMemory`).
@@ -28,6 +29,7 @@ New
 - **"Close apps" really closes apps.** The tile now takes every app from the dock and the app list (previously a handful of names typed into the code) and skips only what the TV needs: the launcher, System UI, Settings, Play Store, Google services, the Chromecast receiver and the vendor television stack. On a rooted box it runs `am force-stop`, a real force stop that also takes down services; without root it asks Android to drop each app's background processes. The toast reports the app count and how much RAM came back, and the RAM widget refreshes at once. Package names are validated before they reach a shell (`tests/AppCleanupCheck.java` covers it).
 - **Choose what "Android TV settings" opens.** Boxes often ship two settings apps: plain AOSP settings and the Android-TV-style side panel (on this box `com.android.settings` and `com.android.tv.settings`). Both answer the same system intent, so the button always opened whichever Android preferred. **Holding OK** on the button now lists every settings app, ticks the current one and saves the pick; a short press opens the choice from then on. If the saved app disappears, the launcher falls back to the system default. `tests/SettingsTargetsCheck.java` covers the fallback rules.
 - **Local IP in settings.** The settings panel (gear icon) at the bottom, next to Language, About and Spotify, now shows the TV's local IP address — easier to find it on the network, e.g. for ADB installation.
+- **Sunrise/sunset automatic mode.** In launcher appearance settings, when "Automatic" is chosen, you can switch between day/night changing by sunrise/sunset for your weather city (Open-Meteo data) or fixed hours. Sunrise/sunset is used by default once weather data is available.
 
 Improved
 - **Lighter memory use.** A wallpaper photo is scaled exactly to the screen (previously up to 2560×1440), the Spotify cover to the bar size, and gallery thumbnails are smaller. Custom dock icons are kept at most 384 px — older 512-pixel ones shrink when loaded. Icons, crests and weather art use byte-limited caches, and the system can drop them immediately under memory pressure (`onTrimMemory`).

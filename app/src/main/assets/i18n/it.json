@@ -278,5 +278,8 @@
   "Uninstall app": "Disinstalla app",
   "Cannot uninstall": "Impossibile disinstallare",
   "This app came with the TV and cannot be removed.": "Questa app fa parte del televisore e non può essere rimossa.",
-  "This TV did not open an uninstall window.": "Il televisore non ha aperto una finestra di disinstallazione."
+  "This TV did not open an uninstall window.": "Il televisore non ha aperto una finestra di disinstallazione.",
+  "Automatic appearance": "Aspetto automatico",
+  "Fixed hours": "Ore fisse",
+  "Sunrise/sunset (from weather)": "Alba/tramonto (dal meteo)"
 }

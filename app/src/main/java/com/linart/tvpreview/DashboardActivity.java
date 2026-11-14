@@ -499,9 +499,37 @@ public final class DashboardActivity extends Activity {
     private boolean isNight() {
         SharedPreferences prefs = getPreferences(MODE_PRIVATE);
         Calendar now = Calendar.getInstance();
-        return LauncherTiming.isNight(prefs.getString("appearance_mode", "auto"),
-                now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE),
+        int minute = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE);
+        String mode = prefs.getString("appearance_mode", "auto");
+        if ("auto".equals(mode) && prefs.getBoolean("use_sunrise_sunset", true)) {
+            int sunrise = prefs.getInt("sunrise_minute", 0);
+            int sunset = prefs.getInt("sunset_minute", 0);
+            return LauncherTiming.isNightAuto(mode, minute, sunrise, sunset);
+        }
+        return LauncherTiming.isNight(mode, minute,
                 prefs.getInt("day_start_minute", 480), prefs.getInt("night_start_minute", 1200));
+    }
+
+    /** Parse "HH:mm" or ISO "yyyy-MM-dd'T'HH:mm" time string to minutes from midnight. */
+    private int sunTimeToMinutes(String timeStr) {
+        if (timeStr == null || timeStr.isEmpty()) return 0;
+        try {
+            if (timeStr.length() >= 5 && timeStr.charAt(2) == ':') {
+                int h = Integer.parseInt(timeStr.substring(0, 2));
+                int m = Integer.parseInt(timeStr.substring(3, 5));
+                return h * 60 + m;
+            }
+            int tIdx = timeStr.indexOf('T');
+            if (tIdx >= 0 && timeStr.length() > tIdx + 5) {
+                String timePart = timeStr.substring(tIdx + 1, tIdx + 6);
+                if (timePart.charAt(2) == ':') {
+                    int h = Integer.parseInt(timePart.substring(0, 2));
+                    int m = Integer.parseInt(timePart.substring(3, 5));
+                    return h * 60 + m;
+                }
+            }
+        } catch (Exception ignored) { }
+        return 0;
     }
 
     private void refreshWeather() {
@@ -526,8 +554,18 @@ public final class DashboardActivity extends Activity {
                 if (fetched != null && requestedLocationVersion == weatherLocationVersion) {
                     forecast = fetched;
                     forecastUpdatedAt = System.currentTimeMillis();
-                    getPreferences(MODE_PRIVATE).edit().putString("weather_json", fetched.toString())
-                            .putLong("weather_updated", forecastUpdatedAt).apply();
+                    SharedPreferences.Editor edit = getPreferences(MODE_PRIVATE).edit()
+                            .putString("weather_json", fetched.toString())
+                            .putLong("weather_updated", forecastUpdatedAt);
+                    // Extract sunrise/sunset for automatic day/night scheduling.
+                    JSONObject sun = fetched.optJSONObject("sun");
+                    if (sun != null) {
+                        int sunrise = sunTimeToMinutes(sun.optString("Sunrise", null));
+                        int sunset = sunTimeToMinutes(sun.optString("Sunset", null));
+                        if (sunrise > 0) edit.putInt("sunrise_minute", sunrise);
+                        if (sunset > 0) edit.putInt("sunset_minute", sunset);
+                    }
+                    edit.apply();
                     if (weatherSettingsRefreshPending) {
                         weatherSettingsRefreshPending = false;
                         applyVisualSettingsNow();
@@ -1173,13 +1211,33 @@ public final class DashboardActivity extends Activity {
     private void showAppearanceSettings() {
         SharedPreferences prefs = getPreferences(MODE_PRIVATE);
         String mode = prefs.getString("appearance_mode", "auto");
-        // "Custom schedule" is stored as automatic mode with own day/night start times.
         int current = "light".equals(mode) ? 1 : "dark".equals(mode) ? 2
                 : prefs.contains("day_start_minute") || prefs.contains("night_start_minute") ? 3 : 0;
         showChoiceDialog(tr("Wygląd launchera", "Launcher appearance"), new String[]{
                 tr("Automatycznie", "Automatic"), tr("Zawsze jasny", "Always light"),
                 tr("Zawsze ciemny", "Always dark"), tr("Własne godziny", "Custom schedule"),
                 tr("Tapety", "Wallpapers")}, current, which -> {
+            if (which == 0) {
+                // Automatic: choose between sunrise/sunset and fixed hours.
+                boolean useSun = prefs.getBoolean("use_sunrise_sunset", true);
+                int sunCurrent = useSun ? 0 : 1;
+                showChoiceDialog(tr("Automatyczny wygląd", "Automatic appearance"), new String[]{
+                        tr("Wschód i zachód słońca", "Sunrise/sunset (from weather)"),
+                        tr("Własne godziny", "Fixed hours")}, sunCurrent, sunWhich -> {
+                    SharedPreferences.Editor edit = prefs.edit();
+                    if (sunWhich == 0) {
+                        edit.putBoolean("use_sunrise_sunset", true);
+                        edit.remove("day_start_minute");
+                        edit.remove("night_start_minute");
+                    } else {
+                        edit.putBoolean("use_sunrise_sunset", false);
+                        showAppearanceSchedule();
+                    }
+                    edit.apply();
+                    applyVisualSettingsNow();
+                });
+                return;
+            }
             if (which == 3) { showAppearanceSchedule(); return; }
             if (which == 4) { showWallpaperGallery(); return; }
             getPreferences(MODE_PRIVATE).edit().putString("appearance_mode", new String[]{"auto", "light", "dark"}[which]).apply();

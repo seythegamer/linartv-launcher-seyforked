@@ -156,6 +156,14 @@ Everything sits on top of upstream `main` (`2a17480`). The app still reports `ve
   below Language, About and Spotify. This makes it easier to find the TV on the network — for example
   when connecting via `adb connect <TV_IP>:5555` or installing an APK over ADB.
 
+### 9. Sunrise/sunset automatic day/night mode
+
+- In **Settings → Launcher appearance → Automatic**, you can now choose whether day/night follows
+  **sunrise/sunset for your weather city** (Open-Meteo data) or **fixed hours**.
+- Sunrise/sunset is used by default once weather data is available; the launcher switches
+  automatically at sunset and sunrise without needing custom hour setup.
+- If no weather data is available yet, it falls back to fixed 08:00–20:00 hours.
+
 ## Build from source
 
 JDK 17 and the Android SDK are required (`JAVA_HOME`, `ANDROID_HOME`).
