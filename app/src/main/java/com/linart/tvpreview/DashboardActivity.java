@@ -185,6 +185,8 @@ public final class DashboardActivity extends Activity {
     private ScrollView appDrawer;
     private LinearLayout drawerRows;
     private boolean drawerRowsLoaded;
+    /** Launchable packages the rows were built from; a different set means the list is stale. */
+    private final java.util.Set<String> drawerLaunchables = new java.util.LinkedHashSet<>();
     /** Tile that received OK in the list; a long hold on it opens the app menu instead. */
     private View drawerPressTile;
     private boolean drawerPressFired;
@@ -437,9 +439,16 @@ public final class DashboardActivity extends Activity {
             packages.addAction(Intent.ACTION_PACKAGE_REMOVED);
             packages.addAction(Intent.ACTION_PACKAGE_CHANGED);
             packages.addAction(Intent.ACTION_MY_PACKAGE_REPLACED);
+            // Package broadcasts carry a "package:" data URI, and a filter without the matching
+            // scheme never matches them — without this line the receiver was registered but silent.
+            packages.addDataScheme("package");
             registerReceiver(packageReceiver, packages);
             packageReceiverRegistered = true;
         }
+        // Package broadcasts only arrive while the dashboard is resumed. Installing an app from the
+        // Play Store pauses LinarTV, so without this check the new app stayed missing until the
+        // launcher process restarted.
+        refreshDrawerIfStale();
         checkForUpdate(false);
         dashboardVisible = true;
         handler.removeCallbacks(updateTime);
@@ -3942,6 +3951,7 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
         drawerRows.setClipChildren(false);
         appDrawer.addView(drawerRows, new ScrollView.LayoutParams(-1, -2));
         extraAppRows.clear();
+        drawerLaunchables.clear();
         drawerRowsLoaded = false;
         // Read the app list while the dashboard is idle instead of inside the key press that opens
         // it; buildDrawerRows() ignores the call if a newer screen replaced this container.
@@ -5036,10 +5046,14 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
     }
 
     private void populateExtraApps(LinearLayout rows) {
-        // CATEGORY_LAUNCHER covers Android TV (leanback) apps and regular launcher apps, so the
-        // drawer lists user-installed apps even when they were built for phones or tablets.
-        Intent query = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
-        List<ResolveInfo> apps = new ArrayList<>(getPackageManager().queryIntentActivities(query, 0));
+        // Ask for both launch categories: TV apps declare LEANBACK_LAUNCHER, phone and tablet apps
+        // declare LAUNCHER, and plenty of apps answer only one of the two. The loop below keeps one
+        // entry per package, so an app that advertises both is still listed once.
+        List<ResolveInfo> apps = new ArrayList<>();
+        for (ResolveInfo info : getPackageManager().queryIntentActivities(new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0)) apps.add(info);
+        for (ResolveInfo info : getPackageManager().queryIntentActivities(new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER), 0)) apps.add(info);
         HashSet<String> excluded = new HashSet<>();
         excluded.add(getPackageName());
         excluded.addAll(dockPackages);
@@ -5148,6 +5162,31 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
         openAppDrawer(1, 0);
     }
 
+    /** Packages with a launch entry in either category the dock and the app list ask for. */
+    private java.util.Set<String> launchablePackages() {
+        PackageManager manager = getPackageManager();
+        java.util.Set<String> found = new java.util.LinkedHashSet<>();
+        for (ResolveInfo info : manager.queryIntentActivities(new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0))
+            found.add(info.activityInfo.packageName);
+        for (ResolveInfo info : manager.queryIntentActivities(new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER), 0))
+            found.add(info.activityInfo.packageName);
+        return found;
+    }
+
+    /**
+     * Rebuilds the list when an app was installed or removed while LinarTV was in the background.
+     * Package change broadcasts only reach the launcher while it is resumed, so an install from the
+     * Play Store (which pauses the launcher) would otherwise stay invisible until the process died.
+     * The package set read when the rows were built is compared with the current one instead.
+     */
+    private void refreshDrawerIfStale() {
+        if (!drawerRowsLoaded || drawerRows == null) return;
+        if (launchablePackages().equals(drawerLaunchables)) return;
+        refreshDrawerRows();
+    }
+
     /**
      * Builds the tile rows of the app list. Reading every banner and label from the package manager
      * takes some 20 ms, which used to run inside the key press that opens the list; the dashboard
@@ -5156,6 +5195,8 @@ second.setOnClickListener(v -> chooseLeague(1, draft, second, dialog, status));
     private void buildDrawerRows(LinearLayout rows) {
         if (rows == null || rows != drawerRows || drawerRowsLoaded) return;
         if (isFinishing() || isDestroyed()) return;
+        drawerLaunchables.clear();
+        drawerLaunchables.addAll(launchablePackages());
         String[] dockLabels = new String[dockPackages.size()];
         for (int i = 0; i < dockLabels.length; i++) dockLabels[i] = appLabel(dockPackages.get(i));
         addMainDrawerRow(rows, dockLabels, dockPackages.toArray(new String[0]));

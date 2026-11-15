@@ -376,6 +376,10 @@ Temporary writes use a `.tmp` sibling + atomic move where it matters (crests).
   SVG rendered with AndroidSVG), stored as PNG at ≤ 384 px in `files/custom_icons`.
 - `HIDDEN_APP_PACKAGES` excludes TV system entries that are not real apps.
 - The app drawer builds rows lazily; keep the focus-to-dock mapping when changing it.
+- The dock and the drawer ask for both `CATEGORY_LEANBACK_LAUNCHER` and `CATEGORY_LAUNCHER`: TV-only
+  apps declare just the first. The rows are cached, then rebuilt when the launchable package set
+  differs (checked on resume, so installs made while the launcher was paused still appear). Package
+  broadcasts must be registered with `addDataScheme("package")`, otherwise they never match.
 - Long-press OK offers Move / Swap / Remove; uninstall hands the package to Android's own
   uninstall window (`pendingUninstall`, re-checked on resume). System apps must be explained,
   not silently offered.

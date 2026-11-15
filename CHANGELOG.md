@@ -17,6 +17,7 @@ Nowe
 Ulepszone
 - **Lżejsza pamięć.** Zdjęcie tapety jest skalowane dokładnie do rozmiaru ekranu (wcześniej do 2560×1440), okładka Spotify do wielkości paska, a miniatury w galerii tapet są mniejsze. Własne ikony docku mają najwyżej 384 px — starsze, 512-pikselowe, są zmniejszane przy wczytaniu. Ikony, herby i pogoda mają cache z limitem pamięci, a przy braku pamięci system zwalnia je od razu (`onTrimMemory`).
 - **Płynniejsze otwieranie listy aplikacji.** Poświata fokusu jest rysowana raz na rozmiar i kolor, bez warstwy software na każdym kafelku; lista otwiera się w ok. 70 ms zamiast ok. 350 ms, a poświata nie jest już przycinana na brzegach.
+- **Nowe aplikacje od razu na liście aplikacji.** Lista zawiera teraz także aplikacje przeznaczone wyłącznie na telewizor (Leanback) i odświeża się sama po instalacji lub odinstalowaniu — wcześniej nowo zainstalowanej aplikacji nie było na liście do restartu launchera.
 - Po zamknięciu ustawień pilot działa od razu: fokus wraca na kafelek, z którego otwarto panel, także gdy panel zdążył przerysować pulpit.
 
 Do wiadomości
@@ -34,6 +35,7 @@ New
 Improved
 - **Lighter memory use.** A wallpaper photo is scaled exactly to the screen (previously up to 2560×1440), the Spotify cover to the bar size, and gallery thumbnails are smaller. Custom dock icons are kept at most 384 px — older 512-pixel ones shrink when loaded. Icons, crests and weather art use byte-limited caches, and the system can drop them immediately under memory pressure (`onTrimMemory`).
 - **Faster app list.** The focus aura is rendered once per size and colour instead of a software layer on every tile; the list opens in about 70 ms instead of about 350 ms, and the aura is no longer clipped at the edges.
+- **Newly installed apps show up in the app list.** The list now also includes TV-only (Leanback) apps and refreshes itself after an install or uninstall — previously a freshly installed app stayed missing until the launcher restarted.
 - The remote works right after closing the settings panel: focus returns to the tile that opened it, even when the panel rebuilt the dashboard behind it.
 
 Note

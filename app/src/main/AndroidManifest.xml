@@ -23,6 +23,12 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
         </intent>
+        <!-- The app list and the dock listing also ask for phone/tablet apps (targetSdk 28 is not
+             filtered yet, but keep the query declared for a future targetSdk bump). -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
         <package android:name="com.netflix.ninja" />
         <package android:name="com.canal.android.canal" />
         <package android:name="com.google.android.youtube.tv" />
